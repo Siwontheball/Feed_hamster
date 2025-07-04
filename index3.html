@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Hamster – no‑wheel edition</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: "Inter", sans-serif; background:#f0f4f8; }
+    canvas { display:block; }
+    #info-overlay{
+      position:absolute;top:10px;left:10px;padding:14px 18px;
+      background:rgba(255,255,255,.85);backdrop-filter:blur(5px);
+      border-radius:14px;box-shadow:0 4px 15px rgba(0,0,0,.08);
+      border:1px solid rgba(255,255,255,.9);max-width:280px;font-size:.9em;
+    }
+    h1{margin:0 0 4px;font-size:1.15em}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- module specifiers for THREE -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="info-overlay">
+    <h1>Interactive Hamster</h1>
+    <p>Click the hamster to make it hop – or click the grass to drop a seed.</p>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+    /* -------------------------------------------------- SETUP */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xd0e6f0);
+    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, .1, 1000);
+    camera.position.set(0,3,7);
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor=.05; controls.maxPolarAngle=Math.PI/1.8;
+
+    /* -------------------------------------------------- LIGHTS */
+    scene.add(new THREE.HemisphereLight(0xffffff,0x999999,1.2));
+    const dirLight = new THREE.DirectionalLight(0xffffff,1);
+    dirLight.position.set(3,5,5); dirLight.castShadow=true; scene.add(dirLight);
+
+    /* -------------------------------------------------- GROUND */
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(30,30), new THREE.MeshStandardMaterial({color:0x90ee90}));
+    ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; ground.name="ground"; scene.add(ground);
+
+    /* -------------------------------------------------- MATERIAL & TEXTURE HELPERS */
+    function furTex(hex){
+      const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');
+      const d=ctx.createImageData(256,256);const data=d.data;const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+      for(let i=0;i<data.length;i+=4){const dv=(Math.random()-.5)*40;data[i]=r+dv;data[i+1]=g+dv;data[i+2]=b+dv;data[i+3]=255;}
+      ctx.putImageData(d,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+
+    const C={dark:'#8b5e34',orange:'#d2691e',white:'#f5f5f5',paw:'#e49b91',ear:'#c78d5c',eye:'#222'};
+    const M={dark:new THREE.MeshStandardMaterial({map:furTex(C.dark),roughness:.9}),orange:new THREE.MeshStandardMaterial({map:furTex(C.orange),roughness:.9}),white:new THREE.MeshStandardMaterial({map:furTex(C.white),roughness:.9}),paw:new THREE.MeshStandardMaterial({color:C.paw,roughness:.9}),eye:new THREE.MeshStandardMaterial({color:C.eye}),earIn:new THREE.MeshStandardMaterial({color:C.ear,side:THREE.DoubleSide})};
+
+    /* -------------------------------------------------- HAMSTER */
+    const hamster = new THREE.Group();
+    const homePos = new THREE.Vector3(0,.8,0);
+    hamster.position.copy(homePos); scene.add(hamster);
+
+    // body
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1,32,16),M.dark);
+    body.scale.set(1,.8,1.3); body.castShadow=true; hamster.add(body);
+    const belly=new THREE.Mesh(new THREE.SphereGeometry(.9,32,16,0,Math.PI*2,0,Math.PI/2),M.white);
+    belly.rotation.x=Math.PI; belly.scale.set(.8,1.5,.9); belly.position.y=-.1; body.add(belly);
+    const backPatch=new THREE.Mesh(new THREE.SphereGeometry(.8,32,16),M.orange);
+    backPatch.scale.set(.7,.5,1.2); backPatch.position.set(0,.4,-.1); body.add(backPatch);
+
+    // head group
+    const head=new THREE.Group(); const headY=.2; head.position.set(0,headY,1.0); hamster.add(head);
+    const headM=new THREE.Mesh(new THREE.SphereGeometry(.6,32,16),M.dark); headM.scale.set(1,.9,1.1); headM.castShadow=true; head.add(headM);
+    const face=new THREE.Mesh(new THREE.SphereGeometry(.5,32,16),M.white); face.position.set(0,-.1,.2); face.scale.y=1.2; head.add(face);
+    const snout=new THREE.Mesh(new THREE.SphereGeometry(.3,16,8),M.dark); snout.scale.set(1,.7,1.5); snout.position.set(0,-.05,.4); head.add(snout);
+    const eyeL=new THREE.Mesh(new THREE.SphereGeometry(.08,16,8),M.eye); eyeL.position.set(-.25,.2,.5); head.add(eyeL);
+    const eyeR=eyeL.clone(); eyeR.position.x*=-1; head.add(eyeR);
+    const nose=new THREE.Mesh(new THREE.SphereGeometry(.06,16,8),M.paw); nose.position.set(0,.05,.75); head.add(nose);
+    const earGeom=new THREE.SphereGeometry(.2,16,8,0,Math.PI);
+    const earL=new THREE.Mesh(earGeom,M.dark); earL.position.set(-.4,.4,-.2); earL.rotation.set(Math.PI/1.5,0,-Math.PI/6); head.add(earL);
+    const earR=earL.clone(); earR.position.x*=-1; earR.rotation.y*=-1; earR.rotation.z*=-1; head.add(earR);
+    earL.add(new THREE.Mesh(new THREE.SphereGeometry(.12,16,8,0,Math.PI),M.earIn));
+    earR.add(new THREE.Mesh(new THREE.SphereGeometry(.12,16,8,0,Math.PI),M.earIn));
+
+    // legs with pivots for gait
+    const pawGeom=new THREE.CylinderGeometry(.08,.08,.2,8);
+    function makeLeg(x,y,z){const pivot=new THREE.Group();pivot.position.set(x,y,z);hamster.add(pivot);const paw=new THREE.Mesh(pawGeom,M.paw);paw.position.set(0,-.1,0);pivot.add(paw);return pivot;}
+    const FL=makeLeg(-.4,-.4,.6), FR=makeLeg(.4,-.4,.6), BL=makeLeg(-.4,-.45,-.5), BR=makeLeg(.4,-.45,-.5);
+    const tail=new THREE.Mesh(new THREE.SphereGeometry(.15,8,8),M.dark); tail.position.set(0,-.2,-1.2); hamster.add(tail);
+
+    /* -------------------------------------------------- FOOD SEEDS */
+    const seedGeom=new THREE.SphereGeometry(.04,8,4); seedGeom.scale(1,1.8,1);
+    const seedMat=new THREE.MeshStandardMaterial({color:0x333});
+
+    /* -------------------------------------------------- RAYCAST / INPUT */
+    const ray=new THREE.Raycaster(); const mouse=new THREE.Vector2(); const lookAtPt=new THREE.Vector3();
+    window.addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);if(state==='IDLE')ray.ray.at(5,lookAtPt);});
+    window.addEventListener('click',e=>{if(state!=='IDLE')return;mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
+      const hit=ray.intersectObjects(hamster.children,true); if(hit.length){state='JUMP';jumpT=0;return;}
+      const gHit=ray.intersectObject(ground); if(gHit.length){const s=new THREE.Mesh(seedGeom,seedMat);s.position.copy(gHit[0].point);s.position.y+=.05;s.castShadow=true;scene.add(s);foodQ.push(s);} });
+
+    /* -------------------------------------------------- STATE MACHINE VARIABLES */
+    let state='IDLE'; let jumpT=-1; let eatT=0; let nextTwitch=2; const foodQ=[]; let target=null;
+
+    /* -------------------------------------------------- RUN CYCLE */
+    function runCycle(t,speed=1,stride=Math.PI/6){const ph=t*speed*10;FL.rotation.x=Math.sin(ph)*stride;BR.rotation.x=Math.sin(ph)*stride;FR.rotation.x=Math.sin(ph+Math.PI)*stride;BL.rotation.x=Math.sin(ph+Math.PI)*stride;hamster.position.y=homePos.y+Math.abs(Math.sin(ph))*.05;tail.rotation.x=.2+Math.sin(ph*2)*.1;}
+
+    /* -------------------------------------------------- LOOP */
+    const clock=new THREE.Clock();
+    function animate(){requestAnimationFrame(animate);const dt=clock.getDelta();const t=clock.getElapsedTime();
+      switch(state){
+        case 'IDLE':
+          hamster.position.y=homePos.y+Math.sin(t*2.5)*.03;head.lookAt(lookAtPt);
+          head.rotation.y=THREE.MathUtils.clamp(head.rotation.y,-Math.PI/3,Math.PI/3);
+          head.rotation.x=THREE.MathUtils.clamp(head.rotation.x,-Math.PI/6,Math.PI/6);head.rotation.z=0;
+          if(t>nextTwitch){const ear=Math.random()<.5?earL:earR;const amt=(Math.random()-.5)*.5;ear.rotation.z+=amt;setTimeout(()=>ear.rotation.z-=amt,100);nextTwitch=t+Math.random()*4+2;}
+          if(foodQ.length&&!target){target=foodQ.shift();state='MOVE_SEED';}
+          break;
+        case 'JUMP':
+          jumpT+=dt*5;hamster.position.y=homePos.y+Math.sin(jumpT)*.5; if(jumpT>Math.PI){hamster.position.y=homePos.y;state='IDLE';}
+          break;
+        case 'MOVE_SEED':{
+          const dest=target.position.clone();dest.y=hamster.position.y;const dir=dest.clone().sub(hamster.position);
+          if(dir.length()<.1){state='EAT';eatT=0;} else {dir.normalize();runCycle(t);hamster.position.add(dir.multiplyScalar(dt*1.5));hamster.lookAt(dest);head.rotation.set(0,0,0);} }
+          break;
+        case 'EAT':
+          head.position.y=headY+Math.sin(t*30)*.02;eatT+=dt; if(eatT>1.5){scene.remove(target);target=null;head.position.y=headY;homePos.copy(hamster.position);state='IDLE';}
+          break;
+      }
+      controls.update(); renderer.render(scene,camera);
+    }
+    animate();
+
+    addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+  </script>
+</body>
+</html>
+
