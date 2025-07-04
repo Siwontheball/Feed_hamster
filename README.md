@@ -11,8 +11,9 @@ https://<your-user>.github.io/feed_hamster/
 #Quick Start
 git clone https://github.com/<your-user>/feed_hamster.git
 cd feed_hamster
-open index.html        # macOS (or just double-click the file)
-# windows: start index.html
+open index.html        
+←macOS (or just double-click the file)
+←windows: start index.html
 
 #How to play
 🐹 Click the hamster → it jumps
