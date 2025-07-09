@@ -21,7 +21,9 @@ open index.html
 
 ## Demo
 ### Throwing seed
-![Hamster eating seed](images/hamster_1.png)(images/hamster_2.png)
+![Hamster eating seed]
+(images/hamster_1.png)
+(images/hamster_2.png)
 
 <p align="center">
   <img src="images/hamster_1.png" width="350"/>
