@@ -19,4 +19,10 @@ open index.html
 🐹 Click the hamster → it jumps
 🌻 Click the grass → seed appears, hamster eats
 
+## Demo
+### Throwing seed
+![Hamster eating seed](images/hamster_1.png)(images/hamster_2.png)
 
+<p align="center">
+  <img src="images/hamster_1.png" width="350"/>
+</p>
