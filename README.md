@@ -24,6 +24,3 @@ open index.html
 ![Hamster eating seed](images/hamster_1.png)
 ![Hamster eating seed](images/hamster_2.png)
 
-<p align="center">
-  <img src="images/hamster_1.png" width="350"/>
-</p>
